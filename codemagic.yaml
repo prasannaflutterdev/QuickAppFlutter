@@ -29,6 +29,7 @@ definitions:
     # - &app $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.app
     #    - &android_abb build/**/outputs/**/*.aab
     - &android_apk build/**/outputs/**/*.apk
+    - &android_apk2 Users/builder/clone/build/**/outputs/**/*.apk
     #- &android_mapping_txt build/**/outputs/**/mapping.txt
     #3- &flutter_drive_log flutter_drive.log
 
@@ -36,6 +37,7 @@ definitions:
     email:
       recipients:
         - $EMAIL_ID
+        - prasannasrinivasan32@gmail.com
         # - thamaraikannan137@gmail.com
       notify:
         success: true
@@ -232,7 +234,7 @@ definitions:
         name: Building App with Feature Flags
         script: |
           echo "✅ Start Building APK..."
-          flutter clean
+#          flutter clean
           flutter pub get
           flutter build apk --release \
             --dart-define=WEB_URL="$WEB_URL" \
@@ -374,6 +376,7 @@ workflows:
       # - *build_debug_apk
     artifacts:
       - *android_apk
+      - *android_apk2
       - build/app/outputs/flutter-apk/app-release.apk
       - flutter_build.log
       - fcm_token.txt
