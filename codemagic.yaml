@@ -302,6 +302,11 @@ definitions:
 #        flutter pub get
 #        flutter build apk --release --dart-define=WEB_URL="$WEB_URL" --dart-define=PUSH_NOTIFY="$PUSH_NOTIFY"
 
+    - &Debug_apk
+      name: Debug APK Output
+      script: |
+        echo "🔍 Checking for generated APKs..."
+        find build/ -name "*.apk"
 
     - &update_android_package
       name: Update Android Package Name
@@ -363,11 +368,13 @@ workflows:
       - *set_splash_icons
       - *change_app_name
       - *build_app
+      - *Debug_apk
       # - *build_release_apk
       # - *build_abb
       # - *build_debug_apk
     artifacts:
       - *android_apk
+      - build/app/outputs/flutter-apk/app-release.apk
       - flutter_build.log
       - fcm_token.txt
     #        - *android_abb
