@@ -75,6 +75,17 @@ definitions:
         done
         echo "✅ All required vars are present"
 
+    - &Confirm_gradle
+          name: Confirm gradle file
+          script: |
+            echo "📁 Checking build.gradle exists..."
+            if [ -f "android/app/build.gradle" ]; then
+              echo "✅ android/app/build.gradle found!"
+            else
+              echo "❌ android/app/build.gradle is missing!"
+              exit 1
+            fi
+
     - &Inject_Firebase
         name: Inject Firebase and buildscript block
         script: |
@@ -272,6 +283,7 @@ workflows:
     scripts:
       - *pub_get
       - *debug_env
+      - *Confirm_gradle
       - *patch_android_build_config
       - *update_android_package
       - *Inject_Firebase
