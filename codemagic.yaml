@@ -244,7 +244,7 @@ definitions:
           flutter pub get
           
 #          if [ "$PUSH_NOTIFY" = "true" ]; then
-          flutter build apk --release \
+                flutter build apk --release \
                 --dart-define=WEB_URL="$WEB_URL" \
                 --dart-define=PUSH_NOTIFY="$PUSH_NOTIFY" \
                 --dart-define=IS_CAMERA="$IS_CAMERA" \
@@ -254,7 +254,8 @@ definitions:
                 --dart-define=IS_CONTACT="$IS_CONTACT" \
                 --dart-define=IS_SMS="$IS_SMS" \
                 --dart-define=IS_PHONE="$IS_PHONE" \
-                --dart-define=IS_BLUETOOTH="$IS_BLUETOOTH" > flutter_build.log
+                --dart-define=IS_BLUETOOTH="$IS_BLUETOOTH" \
+                > flutter_build.log
                 echo "✅ Build APK Compleated...."      
 #          else
 #            flutter build apk --release \
@@ -269,7 +270,7 @@ definitions:
 #              --dart-define=IS_PHONE="$IS_PHONE" \
 #              --dart-define=IS_BLUETOOTH="$IS_BLUETOOTH" > flutter_build.log
 #              echo "✅ Build APK Compleated...."
-          fi  
+                fi
     # - &build_app
     #   name: Building App
     #   script: |
