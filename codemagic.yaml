@@ -133,41 +133,46 @@ definitions:
     - &patch_android_build_config
         name: Patch Android build config (NDK & desugaring)
         script: |
-          echo "🔧 Patching build.gradle for NDK and desugaring support..."
+          echo "🔧 Patching android/app/build.gradle for NDK and desugaring support..."
 
-              # ✅ Add ndkVersion if not present
-              if grep -q "ndkVersion" android/app/build.gradle; then
-                echo "✅ NDK version already specified"
-              else
-                sed -i '' '/android {/a\
-              ndkVersion "27.0.12077973"
-                ' android/app/build.gradle
-                echo "✅ Added ndkVersion = 27.0.12077973"
-              fi
-
-              # ✅ Enable coreLibraryDesugaring in dependencies
-              if grep -q "desugar_jdk_libs" android/app/build.gradle; then
-                echo "✅ coreLibraryDesugaring already added"
-              else
-                sed -i '' '/dependencies {/a\
-              coreLibraryDesugaring "com.android.tools:desugar_jdk_libs:2.0.4"
-                ' android/app/build.gradle
-                echo "✅ Added coreLibraryDesugaring dependency"
-              fi
-
-              # ✅ Add compileOptions for Java 8+
-              if grep -q "compileOptions" android/app/build.gradle; then
-                echo "✅ compileOptions already exists"
-              else
-                sed -i '' '/android {/a\
-              compileOptions {\n\
-                  sourceCompatibility JavaVersion.VERSION_1_8\n\
-                  targetCompatibility JavaVersion.VERSION_1_8\n\
-                  coreLibraryDesugaringEnabled true\n\
-              }
-                ' android/app/build.gradle
-                echo "✅ Added compileOptions with desugaring enabled"
-              fi
+          GRADLE_FILE="android/app/build.gradle"
+      
+          # Ensure the file is writable
+          chmod +w "$GRADLE_FILE"
+      
+          # Inject ndkVersion if not present
+          if grep -q "ndkVersion" "$GRADLE_FILE"; then
+          echo "✅ NDK version already present"
+          else
+          echo "✅ Adding ndkVersion..."
+          sed -i '' '/android {/a\
+          \    ndkVersion "27.0.12077973"\
+          ' "$GRADLE_FILE"
+          fi
+      
+          # Inject coreLibraryDesugaring dependency if not present
+          if grep -q "coreLibraryDesugaring" "$GRADLE_FILE"; then
+            echo "✅ coreLibraryDesugaring already present"
+          else
+            echo "✅ Adding coreLibraryDesugaring dependency..."
+            sed -i '' '/dependencies {/a\
+          \    coreLibraryDesugaring "com.android.tools:desugar_jdk_libs:2.1.4"\
+          ' "$GRADLE_FILE"
+          fi
+      
+          # Inject compileOptions if not present
+          if grep -q "compileOptions" "$GRADLE_FILE"; then
+            echo "✅ compileOptions already exists"
+          else
+            echo "✅ Adding compileOptions with desugaring enabled..."
+            sed -i '' '/android {/a\
+          \    compileOptions {\n\
+          \        sourceCompatibility JavaVersion.VERSION_11\n\
+          \        targetCompatibility JavaVersion.VERSION_11\n\
+          \        coreLibraryDesugaringEnabled true\n\
+          \    }\
+          ' "$GRADLE_FILE"
+          fi
 
     #          echo "🔧 Patching build.gradle for NDK and desugaring support..."
 #
