@@ -90,18 +90,34 @@ definitions:
         name: Inject Firebase and buildscript block
         script: |
           if [ "$PUSH_NOTIFY" = "true" ]; then
-                      echo "📦 Enabling Firebase integration..."
-                      if ! grep -q "com.google.gms:google-services" android/build.gradle; then
-                        echo "✅ Injecting Firebase classpath..."
-                        if ! grep -q "buildscript {" android/build.gradle; then
-                          sed -i '1s;^;buildscript {\n  repositories {\n    google()\n    mavenCentral()\n  }\n  dependencies {\n    classpath "com.google.gms:google-services:4.3.15"\n  }\n}\n\n;' android/build.gradle
-                        else
-                          sed -i '/dependencies {/a \    classpath "com.google.gms:google-services:4.3.15"' android/build.gradle
-                        fi
-                      fi
-                  else
-                    echo "🚫 Firebase config skipped (PUSH_NOTIFY is not true)"
-                  fi
+            echo "📦 Enabling Firebase integration..."
+          
+            if ! grep -q "com.google.gms:google-services" android/build.gradle; then
+              echo "✅ Injecting Firebase classpath..."
+          
+              if ! grep -q "buildscript {" android/build.gradle; then
+                sed -i.bak '1i\
+                buildscript {\
+                repositories {\
+                google()\
+                mavenCentral()\
+              }\
+                dependencies {\
+                classpath 'com.android.tools.build:gradle:8.1.1'\
+                classpath "com.google.gms:google-services:4.3.15"\
+              }\
+            }\
+              ' android/build.gradle
+                            echo "✅ Full buildscript block injected"
+                          else
+                            sed -i.bak '/dependencies {/a\
+              classpath "com.google.gms:google-services:4.3.15"' android/build.gradle
+              echo "✅ Firebase classpath appended to existing block"
+              fi
+              fi
+              else
+              echo "🚫 Firebase config skipped (PUSH_NOTIFY is not true)"
+              fi
 #          if [ "$PUSH_NOTIFY" = "true" ]; then
 #          echo "📦 Enabling Firebase integration..."
 #
@@ -124,30 +140,66 @@ definitions:
         name: Patch Android build config (NDK & desugaring)
         script: |
           echo "🔧 Patching build.gradle for NDK and desugaring support..."
-          
-          # Inject ndkVersion
-          if grep -q "ndkVersion" android/app/build.gradle; then
-            echo "✅ NDK version already specified"
-          else
-            sed -i '/android {/a \    ndkVersion "27.0.12077973"' android/app/build.gradle
-            echo "✅ Added ndkVersion"
-          fi
-          
-          # Enable coreLibraryDesugaring
-          if grep -q "coreLibraryDesugaringEnabled true" android/app/build.gradle; then
-            echo "✅ Desugaring already enabled"
-          else
-            sed -i '/compileOptions {/a \        coreLibraryDesugaringEnabled true' android/app/build.gradle
-            echo "✅ Enabled desugaring"
-          fi
-          
-          # Add desugaring dependency
-          if grep -q "desugar_jdk_libs" android/app/build.gradle; then
-            echo "✅ Desugar lib already in dependencies"
-          else
-            sed -i '/dependencies {/a \    coreLibraryDesugaring "com.android.tools:desugar_jdk_libs:2.0.4"' android/app/build.gradle
-            echo "✅ Added desugar_jdk_libs dependency"
-          fi
+
+              # ✅ Add ndkVersion if not present
+              if grep -q "ndkVersion" android/app/build.gradle; then
+                echo "✅ NDK version already specified"
+              else
+                sed -i '' '/android {/a\
+              ndkVersion "27.0.12077973"
+                ' android/app/build.gradle
+                echo "✅ Added ndkVersion = 27.0.12077973"
+              fi
+
+              # ✅ Enable coreLibraryDesugaring in dependencies
+              if grep -q "desugar_jdk_libs" android/app/build.gradle; then
+                echo "✅ coreLibraryDesugaring already added"
+              else
+                sed -i '' '/dependencies {/a\
+              coreLibraryDesugaring "com.android.tools:desugar_jdk_libs:2.0.4"
+                ' android/app/build.gradle
+                echo "✅ Added coreLibraryDesugaring dependency"
+              fi
+
+              # ✅ Add compileOptions for Java 8+
+              if grep -q "compileOptions" android/app/build.gradle; then
+                echo "✅ compileOptions already exists"
+              else
+                sed -i '' '/android {/a\
+              compileOptions {\n\
+                  sourceCompatibility JavaVersion.VERSION_1_8\n\
+                  targetCompatibility JavaVersion.VERSION_1_8\n\
+                  coreLibraryDesugaringEnabled true\n\
+              }
+                ' android/app/build.gradle
+                echo "✅ Added compileOptions with desugaring enabled"
+              fi
+
+    #          echo "🔧 Patching build.gradle for NDK and desugaring support..."
+#
+#          # Inject ndkVersion
+#          if grep -q "ndkVersion" android/app/build.gradle; then
+#            echo "✅ NDK version already specified"
+#          else
+#            sed -i '/android {/a \    ndkVersion "27.0.12077973"' android/app/build.gradle
+#            echo "✅ Added ndkVersion"
+#          fi
+#
+#          # Enable coreLibraryDesugaring
+#          if grep -q "coreLibraryDesugaringEnabled true" android/app/build.gradle; then
+#            echo "✅ Desugaring already enabled"
+#          else
+#            sed -i '/compileOptions {/a \        coreLibraryDesugaringEnabled true' android/app/build.gradle
+#            echo "✅ Enabled desugaring"
+#          fi
+#
+#          # Add desugaring dependency
+#          if grep -q "desugar_jdk_libs" android/app/build.gradle; then
+#            echo "✅ Desugar lib already in dependencies"
+#          else
+#            sed -i '/dependencies {/a \    coreLibraryDesugaring "com.android.tools:desugar_jdk_libs:2.0.4"' android/app/build.gradle
+#            echo "✅ Added desugar_jdk_libs dependency"
+#          fi
 
     - &get_json
         name: Get JSON file
