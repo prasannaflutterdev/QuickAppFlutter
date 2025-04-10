@@ -7,13 +7,12 @@ plugins {
 android {
     namespace 'com.example.quick_app_flutter'
     compileSdk flutter.compileSdkVersion
-//    ndkVersion flutter.ndkVersion
-    ndkVersion "27.0.12077973"
+    ndkVersion "27.0.12077973" // 🔧 Added based on plugin requirement
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_11
         targetCompatibility JavaVersion.VERSION_11
-        coreLibraryDesugaringEnabled true
+        coreLibraryDesugaringEnabled true // 🔧 For desugaring
     }
 
     kotlinOptions {
