@@ -39,7 +39,8 @@ definitions:
   email_release: &email_release
     email:
       recipients:
-        - $EMAIL_ID
+        # - $EMAIL_ID
+        - prasannasrie@gmail.com
         # - thamaraikannan137@gmail.com
       notify:
         success: true
