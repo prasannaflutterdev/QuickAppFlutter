@@ -23,22 +23,14 @@ definitions:
         IS_BLUETOOTH: $IS_BLUETOOTH
 
   artifacts:
-    #- &ipa_file build/ios/ipa/*.ipa
-    #- &xcode_log /tmp/xcodebuild_logs/*.log
-    #- &dsym $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
-    # - &app $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.app
-    #    - &android_abb build/**/outputs/**/*.aab
     - &android_apk build/**/outputs/**/*.apk
     - &android_apk2 Users/builder/clone/build/**/outputs/**/*.apk
-    #- &android_mapping_txt build/**/outputs/**/mapping.txt
-    #3- &flutter_drive_log flutter_drive.log
 
   email_release: &email_release
     email:
       recipients:
         - $EMAIL_ID
         - prasannasrinivasan32@gmail.com
-        # - thamaraikannan137@gmail.com
       notify:
         success: true
         failure: true
@@ -60,203 +52,141 @@ definitions:
         echo "PKG_NAME: $PKG_NAME"
         echo "EMAIL_ID: $EMAIL_ID"
         echo "PUSH_NOTIFY: $PUSH_NOTIFY"
-         echo "IS_CAMERA: $IS_CAMERA"
-          echo "IS_LOCATION: $IS_LOCATION"
-          echo "IS_MIC: $IS_MIC"
-          echo "IS_NOTIFICATION: $IS_NOTIFICATION"
-          echo "IS_CONTACT: $IS_CONTACT"
-          echo "IS_SMS: $IS_SMS"
-          echo "IS_PHONE: $IS_PHONE"
-          echo "IS_BLUETOOTH: $IS_BLUETOOTH"
+        echo "IS_CAMERA: $IS_CAMERA"
+        echo "IS_LOCATION: $IS_LOCATION"
+        echo "IS_MIC: $IS_MIC"
+        echo "IS_NOTIFICATION: $IS_NOTIFICATION"
+        echo "IS_CONTACT: $IS_CONTACT"
+        echo "IS_SMS: $IS_SMS"
+        echo "IS_PHONE: $IS_PHONE"
+        echo "IS_BLUETOOTH: $IS_BLUETOOTH"
         REQUIRED_VARS=("APP_NAME" "ORG_NAME" "WEB_URL" "EMAIL_ID")
         for var in "${REQUIRED_VARS[@]}"; do
-        if [ -z "${!var}" ]; then
-        echo "❌ $var is not set"
-        exit 1
-        fi
+          if [ -z "${!var}" ]; then
+            echo "❌ $var is not set"
+            exit 1
+          fi
         done
         echo "✅ All required vars are present"
 
     - &Confirm_gradle
-          name: Confirm gradle file
-          script: |
-            echo "📁 Checking build.gradle exists..."
-            if [ -f "android/app/build.gradle" ]; then
-              echo "✅ android/app/build.gradle found!"
-            else
-              echo "❌ android/app/build.gradle is missing!"
-              exit 1
-            fi
+      name: Confirm gradle file
+      script: |
+        echo "📁 Checking build.gradle exists..."
+        if [ -f "android/app/build.gradle" ]; then
+          echo "✅ android/app/build.gradle found!"
+        else
+          echo "❌ android/app/build.gradle is missing!"
+          exit 1
+        fi
 
     - &Inject_Firebase
-        name: Inject Firebase and buildscript block
-        script: |
-          if [ "$PUSH_NOTIFY" = "true" ]; then
-            echo "📦 Enabling Firebase integration..."
-
-              # 🔓 Ensure write permission
-              chmod +w android/build.gradle
-        
-              # ✅ Inject google-services classpath if not already present
-              if ! grep -q 'com.google.gms:google-services' android/build.gradle; then
-              echo "✅ Injecting Firebase classpath into android/build.gradle..."
-              sed -i '' '/dependencies {/a\
-              classpath "com.google.gms:google-services:4.3.15"
-              ' android/build.gradle
-              else
-                echo "✅ Firebase classpath already present in android/build.gradle"
-              fi
-        
-              # ✅ Inject Google services plugin into app/build.gradle
-              if ! grep -q 'com.google.gms.google-services' android/app/build.gradle; then
-              echo "✅ Applying Firebase plugin in android/app/build.gradle..."
-              sed -i '' '/apply plugin:.*flutter.*$/a\
-                apply plugin: "com.google.gms.google-services"
-              ' android/app/build.gradle
-              else
-                echo "✅ Firebase plugin already applied in android/app/build.gradle"
-              fi
+      name: Inject Firebase and buildscript block
+      script: |
+        if [ "$PUSH_NOTIFY" = "true" ]; then
+          echo "📦 Enabling Firebase integration..."
+          chmod +w android/build.gradle
+          if ! grep -q 'com.google.gms:google-services' android/build.gradle; then
+            echo "✅ Injecting Firebase classpath into android/build.gradle..."
+            sed -i '' '/dependencies {/a\
+            classpath "com.google.gms:google-services:4.3.15"
+            ' android/build.gradle
           else
-          echo "🚫 Firebase config skipped (PUSH_NOTIFY is not true)"
+            echo "✅ Firebase classpath already present in android/build.gradle"
           fi
-#          if [ "$PUSH_NOTIFY" = "true" ]; then
-#          echo "📦 Enabling Firebase integration..."
-#
-#          if ! grep -q "com.google.gms:google-services" android/build.gradle; then
-#            echo "✅ Injecting Firebase classpath into android/build.gradle..."
-#
-#            if ! grep -q "buildscript {" android/build.gradle; then
-#              sed -i '1s;^;buildscript {\n  repositories {\n    google()\n    mavenCentral()\n  }\n  dependencies {\n    classpath "com.google.gms:google-services:4.3.15"\n  }\n}\n\n;' android/build.gradle
-#              echo "✅ Full buildscript block injected"
-#            else
-#              sed -i '/buildscript {/,/}/ s/dependencies {/dependencies {\n    classpath "com.google.gms:google-services:4.3.15"/' android/build.gradle
-#              echo "✅ Firebase classpath inserted"
-#            fi
-#          fi
-#          else
-#          echo "🚫 Firebase config skipped (PUSH_NOTIFY is not true)"
-#          fi
+          if ! grep -q 'com.google.gms.google-services' android/app/build.gradle; then
+            echo "✅ Applying Firebase plugin in android/app/build.gradle..."
+            sed -i '' '/apply plugin:.*flutter.*$/a\
+              apply plugin: "com.google.gms.google-services"
+            ' android/app/build.gradle
+          else
+            echo "✅ Firebase plugin already applied in android/app/build.gradle"
+          fi
+        else
+          echo "🚫 Firebase config skipped (PUSH_NOTIFY is not true)"
+        fi
 
     - &patch_android_build_config
-        name: Patch Android build config (NDK & desugaring)
-        script: |
-          echo "🔧 Patching android/app/build.gradle for NDK and desugaring support..."
-
-          GRADLE_FILE="android/app/build.gradle"
-      
-          # Ensure the file is writable
-          chmod +w "$GRADLE_FILE"
-      
-          # Inject ndkVersion if not present
-          if grep -q "ndkVersion" "$GRADLE_FILE"; then
+      name: Patch Android build config (NDK & desugaring)
+      script: |
+        echo "🔧 Patching android/app/build.gradle for NDK and desugaring support..."
+        GRADLE_FILE="android/app/build.gradle"
+        chmod +w "$GRADLE_FILE"
+        if grep -q "ndkVersion" "$GRADLE_FILE"; then
           echo "✅ NDK version already present"
-          else
+        else
           echo "✅ Adding ndkVersion..."
           sed -i '' '/android {/a\
           \    ndkVersion "27.0.12077973"\
           ' "$GRADLE_FILE"
-          fi
-      
-          # Inject coreLibraryDesugaring dependency if not present
-          if grep -q "coreLibraryDesugaring" "$GRADLE_FILE"; then
-            echo "✅ coreLibraryDesugaring already present"
-          else
-            echo "✅ Adding coreLibraryDesugaring dependency..."
-            sed -i '' '/dependencies {/a\
-          \    coreLibraryDesugaring "com.android.tools:desugar_jdk_libs:2.1.4"\
-          ' "$GRADLE_FILE"
-          fi
-      
-          # Inject compileOptions if not present
-          if grep -q "compileOptions" "$GRADLE_FILE"; then
-            echo "✅ compileOptions already exists"
-          else
-            echo "✅ Adding compileOptions with desugaring enabled..."
-            sed -i '' '/android {/a\
-          \    compileOptions {\n\
-          \        sourceCompatibility JavaVersion.VERSION_11\n\
-          \        targetCompatibility JavaVersion.VERSION_11\n\
-          \        coreLibraryDesugaringEnabled true\n\
-          \    }\
-          ' "$GRADLE_FILE"
-          fi
-
-#          echo "🔧 Patching build.gradle for NDK and desugaring support..."
-#
-#          # Inject ndkVersion
-#          if grep -q "ndkVersion" android/app/build.gradle; then
-#            echo "✅ NDK version already specified"
-#          else
-#            sed -i '/android {/a \    ndkVersion "27.0.12077973"' android/app/build.gradle
-#            echo "✅ Added ndkVersion"
-#          fi
-#
-#          # Enable coreLibraryDesugaring
-#          if grep -q "coreLibraryDesugaringEnabled true" android/app/build.gradle; then
-#            echo "✅ Desugaring already enabled"
-#          else
-#            sed -i '/compileOptions {/a \        coreLibraryDesugaringEnabled true' android/app/build.gradle
-#            echo "✅ Enabled desugaring"
-#          fi
-#
-#          # Add desugaring dependency
-#          if grep -q "desugar_jdk_libs" android/app/build.gradle; then
-#            echo "✅ Desugar lib already in dependencies"
-#          else
-#            sed -i '/dependencies {/a \    coreLibraryDesugaring "com.android.tools:desugar_jdk_libs:2.0.4"' android/app/build.gradle
-#            echo "✅ Added desugar_jdk_libs dependency"
-#          fi
+        fi
+        if grep -q "coreLibraryDesugaring" "$GRADLE_FILE"; then
+          echo "✅ coreLibraryDesugaring already present"
+        else
+          echo "✅ Adding coreLibraryDesugaring dependency..."
+          sed -i '' '/dependencies {/a\
+        \    coreLibraryDesugaring "com.android.tools:desugar_jdk_libs:2.1.4"\
+        ' "$GRADLE_FILE"
+        fi
+        if grep -q "compileOptions" "$GRADLE_FILE"; then
+          echo "✅ compileOptions already exists"
+        else
+          echo "✅ Adding compileOptions with desugaring enabled..."
+          sed -i '' '/android {/a\
+        \    compileOptions {\n\
+        \        sourceCompatibility JavaVersion.VERSION_11\n\
+        \        targetCompatibility JavaVersion.VERSION_11\n\
+        \        coreLibraryDesugaringEnabled true\n\
+        \    }\
+        ' "$GRADLE_FILE"
+        fi
 
     - &get_json
-        name: Get JSON file
-        script: |
-          if [ "$PUSH_NOTIFY" = "true" ]; then
-            echo "📥 Downloading google-services.json..."
-            wget -O android/app/google-services.json "$firebase_config_android"
-            wget -O assets/google-services.json "$firebase_config_android"
-          else
-            echo "🚫 Firebase config skipped (PUSH_NOTIFY is not true)"
-          fi
+      name: Get JSON file
+      script: |
+        if [ "$PUSH_NOTIFY" = "true" ]; then
+          echo "📥 Downloading google-services.json..."
+          wget -O android/app/google-services.json "$firebase_config_android"
+          wget -O assets/google-services.json "$firebase_config_android"
+        else
+          echo "🚫 Firebase config skipped (PUSH_NOTIFY is not true)"
+        fi
 
     - &update_sdkver
-        name: Updating SDK version
-        script: |
-          if [ "$PUSH_NOTIFY" = "true" ]; then
-            echo "🔧 Updating minSdkVersion and targetSdkVersion..."
-            sed -i.bak 's/minSdk\s*=\s*.*$/minSdk 21/' android/app/build.gradle
-            sed -i.bak 's/targetSdk\s*=\s*.*$/targetSdk 34/' android/app/build.gradle
-            echo "✅ SDK versions updated"
-          else
-            echo "🚫 Firebase config skipped (PUSH_NOTIFY is not true)"
-          fi
+      name: Updating SDK version
+      script: |
+        if [ "$PUSH_NOTIFY" = "true" ]; then
+          echo "🔧 Updating minSdkVersion and targetSdkVersion..."
+          sed -i.bak 's/minSdk\s*=\s*.*$/minSdk 21/' android/app/build.gradle
+          sed -i.bak 's/targetSdk\s*=\s*.*$/targetSdk 34/' android/app/build.gradle
+          echo "✅ SDK versions updated"
+        else
+          echo "🚫 Firebase config skipped (PUSH_NOTIFY is not true)"
+        fi
 
     - &build_app
-        name: Building App with Feature Flags
-        script: |
-          echo "✅ Start Building APK..."
-
-          flutter build apk --release \
-          --dart-define=WEB_URL="$WEB_URL" \
-          --dart-define=PUSH_NOTIFY="$PUSH_NOTIFY" \
-          --dart-define=IS_CAMERA="$IS_CAMERA" \
-          --dart-define=IS_LOCATION="$IS_LOCATION" \
-          --dart-define=IS_MIC="$IS_MIC" \
-          --dart-define=IS_NOTIFICATION="$IS_NOTIFICATION" \
-          --dart-define=IS_CONTACT="$IS_CONTACT" \
-          --dart-define=IS_SMS="$IS_SMS" \
-          --dart-define=IS_PHONE="$IS_PHONE" \
-          --dart-define=IS_BLUETOOTH="$IS_BLUETOOTH" \
-          --verbose > flutter_build.log 2>&1
-      
-          echo "✅ Flutter build command completed."
-      
-          if [ ! -f build/app/outputs/flutter-apk/app-release.apk ]; then
+      name: Building App with Feature Flags
+      script: |
+        echo "✅ Start Building APK..."
+        flutter build apk --release \
+        --dart-define=WEB_URL="$WEB_URL" \
+        --dart-define=PUSH_NOTIFY="$PUSH_NOTIFY" \
+        --dart-define=IS_CAMERA="$IS_CAMERA" \
+        --dart-define=IS_LOCATION="$IS_LOCATION" \
+        --dart-define=IS_MIC="$IS_MIC" \
+        --dart-define=IS_NOTIFICATION="$IS_NOTIFICATION" \
+        --dart-define=IS_CONTACT="$IS_CONTACT" \
+        --dart-define=IS_SMS="$IS_SMS" \
+        --dart-define=IS_PHONE="$IS_PHONE" \
+        --dart-define=IS_BLUETOOTH="$IS_BLUETOOTH" \
+        --verbose > flutter_build.log 2>&1
+        echo "✅ Flutter build command completed."
+        if [ ! -f build/app/outputs/flutter-apk/app-release.apk ]; then
           echo "❌ APK not found! Check flutter_build.log for errors."
           cat flutter_build.log | tail -n 100
           exit 1
-          fi
-
-          echo "✅ APK successfully built."
+        fi
+        echo "✅ APK successfully built."
 
     - &get_logo
       name: Get logo image from logoUrl
@@ -277,40 +207,18 @@ definitions:
       script: |
         flutter pub run flutter_launcher_icons:main
         flutter pub get
+
     - &set_splash_icons
       name: Add splash screen to build
       script: |
         flutter pub run flutter_native_splash:create
         flutter pub get
 
-
     - &change_app_name
       name: Change app name
       script: |
         flutter pub run rename setAppName --value "$APP_NAME"
         flutter pub get
-    #
-    #    - &build_abb
-    #      name: Build ABB
-    #      script: |
-    #        flutter build appbundle --release --dart-define=WEB_URL=$WEB_URL
-
-    
-
-#    - &build_debug_apk
-#      name: Build APK
-#      script: |
-#        flutter clean
-#        flutter pub get
-#        flutter build apk --debug --dart-define=WEB_URL="$WEB_URL" --dart-define=PUSH_NOTIFY="$PUSH_NOTIFY"
-#
-#
-#    - &build_release_apk
-#      name: Build APK
-#      script: |
-#        flutter clean
-#        flutter pub get
-#        flutter build apk --release --dart-define=WEB_URL="$WEB_URL" --dart-define=PUSH_NOTIFY="$PUSH_NOTIFY"
 
     - &Debug_apk
       name: Debug APK Output
@@ -322,39 +230,22 @@ definitions:
       name: Update Android Package Name
       script: |
         echo "Updating Android package name..."
-
-        # Convert ORG_NAME and APP_NAME to lowercase and remove spaces/underscores
         CLEANED_ORG_NAME=$(echo "$ORG_NAME" | tr '[:upper:]' '[:lower:]' | tr -d ' _')
         CLEANED_APP_NAME=$(echo "$APP_NAME" | tr '[:upper:]' '[:lower:]' | tr -d ' _')
-
-        # Construct valid package name
-        # PACKAGE_NAME="com.${CLEANED_ORG_NAME}.${CLEANED_APP_NAME}"
-        # Prefer PKG_NAME if available
         if [ -n "$PKG_NAME" ]; then
-        PACKAGE_NAME="$PKG_NAME"
+          PACKAGE_NAME="$PKG_NAME"
         else
           PACKAGE_NAME="${CLEANED_ORG_NAME}.${CLEANED_APP_NAME}"
         fi
-
-        # Validate package name format
         if [[ ! "$PACKAGE_NAME" =~ ^[a-zA-Z_][a-zA-Z0-9]*(\.[a-zA-Z_][a-zA-Z0-9]*)+$ ]]; then
           echo "❌ ERROR: Invalid package name: $PACKAGE_NAME"
           exit 1
         fi
-
         echo "✔ Package name: $PACKAGE_NAME"
-
         flutter pub run rename setBundleId  --value "$PACKAGE_NAME"
-
-        # Update AndroidManifest.xml
         sed -i '' "s/package=\"[^\"]*\"/package=\"$PACKAGE_NAME\"/g" android/app/src/main/AndroidManifest.xml
-
-        # Update applicationId in build.gradle
         sed -i '' "s/applicationId \"[^\"]*\"/applicationId \"$PACKAGE_NAME\"/g" android/app/build.gradle
-
         echo "✔ Package name updated to: $PACKAGE_NAME"
-
-
 
 workflows:
   android-workflow:
@@ -379,17 +270,14 @@ workflows:
       - *change_app_name
       - *build_app
       - *Debug_apk
-      # - *build_release_apk
-      # - *build_abb
-      # - *build_debug_apk
     artifacts:
       - *android_apk
       - *android_apk2
       - build/app/outputs/flutter-apk/app-release.apk
       - flutter_build.log
       - fcm_token.txt
-    #        - *android_abb
     publishing: *email_release
+
   android-release-workflow:
     name: Android release Workflow
     max_build_duration: 65
@@ -399,17 +287,429 @@ workflows:
     scripts:
       - *pub_get
       - *debug_env
-      - *update_android_package  
+      - *update_android_package
       - *get_logo
       - *set_launcher_icons
       - *get_splash
       - *set_splash_icons
       - *change_app_name
       - *Inject_Firebase
-      # - *build_release_apk
-    # - *build_abb
-#     - *build_debug_apk
     artifacts:
       - *android_apk
-    #        - *android_abb
     publishing: *email_release
+
+# definitions:
+
+#   environment:
+#     app_details:
+#       vars:
+#         APP_NAME: $APP_NAME
+#         ORG_NAME: $ORG_NAME
+#         SPLASH: $SPLASH
+#         LOGO_URL: $LOGO_URL
+#         WEB_URL: $WEB_URL
+#         url: $WEB_URL
+#         firebase_config_android: $firebase_config_android
+#         PKG_NAME: $PKG_NAME
+#         EMAIL_ID: $EMAIL_ID
+#         PUSH_NOTIFY: $PUSH_NOTIFY
+#         IS_CAMERA: $IS_CAMERA
+#         IS_LOCATION: $IS_LOCATION
+#         IS_MIC: $IS_MIC
+#         IS_NOTIFICATION: $IS_NOTIFICATION
+#         IS_CONTACT: $IS_CONTACT
+#         IS_SMS: $IS_SMS
+#         IS_PHONE: $IS_PHONE
+#         IS_BLUETOOTH: $IS_BLUETOOTH
+
+#   artifacts:
+#     #- &ipa_file build/ios/ipa/*.ipa
+#     #- &xcode_log /tmp/xcodebuild_logs/*.log
+#     #- &dsym $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
+#     # - &app $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.app
+#     #    - &android_abb build/**/outputs/**/*.aab
+#     - &android_apk build/**/outputs/**/*.apk
+#     - &android_apk2 Users/builder/clone/build/**/outputs/**/*.apk
+#     #- &android_mapping_txt build/**/outputs/**/mapping.txt
+#     #3- &flutter_drive_log flutter_drive.log
+
+#   email_release: &email_release
+#     email:
+#       recipients:
+#         - $EMAIL_ID
+#         - prasannasrinivasan32@gmail.com
+#         # - thamaraikannan137@gmail.com
+#       notify:
+#         success: true
+#         failure: true
+
+#   scripts:
+#     - &pub_get
+#       name: Get packages
+#       script: |
+#         flutter pub get
+
+#     - &debug_env
+#       name: Debug Environment Variables
+#       script: |
+#         echo "APP_NAME: $APP_NAME"
+#         echo "ORG_NAME: $ORG_NAME"
+#         echo "WEB_URL: $WEB_URL"
+#         echo "SPLASH: $SPLASH"
+#         echo "firebase_config_android: $firebase_config_android"
+#         echo "PKG_NAME: $PKG_NAME"
+#         echo "EMAIL_ID: $EMAIL_ID"
+#         echo "PUSH_NOTIFY: $PUSH_NOTIFY"
+#          echo "IS_CAMERA: $IS_CAMERA"
+#           echo "IS_LOCATION: $IS_LOCATION"
+#           echo "IS_MIC: $IS_MIC"
+#           echo "IS_NOTIFICATION: $IS_NOTIFICATION"
+#           echo "IS_CONTACT: $IS_CONTACT"
+#           echo "IS_SMS: $IS_SMS"
+#           echo "IS_PHONE: $IS_PHONE"
+#           echo "IS_BLUETOOTH: $IS_BLUETOOTH"
+#         REQUIRED_VARS=("APP_NAME" "ORG_NAME" "WEB_URL" "EMAIL_ID")
+#         for var in "${REQUIRED_VARS[@]}"; do
+#         if [ -z "${!var}" ]; then
+#         echo "❌ $var is not set"
+#         exit 1
+#         fi
+#         done
+#         echo "✅ All required vars are present"
+
+#     - &Confirm_gradle
+#           name: Confirm gradle file
+#           script: |
+#             echo "📁 Checking build.gradle exists..."
+#             if [ -f "android/app/build.gradle" ]; then
+#               echo "✅ android/app/build.gradle found!"
+#             else
+#               echo "❌ android/app/build.gradle is missing!"
+#               exit 1
+#             fi
+
+#     - &Inject_Firebase
+#         name: Inject Firebase and buildscript block
+#         script: |
+#           if [ "$PUSH_NOTIFY" = "true" ]; then
+#             echo "📦 Enabling Firebase integration..."
+
+#               # 🔓 Ensure write permission
+#               chmod +w android/build.gradle
+        
+#               # ✅ Inject google-services classpath if not already present
+#               if ! grep -q 'com.google.gms:google-services' android/build.gradle; then
+#               echo "✅ Injecting Firebase classpath into android/build.gradle..."
+#               sed -i '' '/dependencies {/a\
+#               classpath "com.google.gms:google-services:4.3.15"
+#               ' android/build.gradle
+#               else
+#                 echo "✅ Firebase classpath already present in android/build.gradle"
+#               fi
+        
+#               # ✅ Inject Google services plugin into app/build.gradle
+#               if ! grep -q 'com.google.gms.google-services' android/app/build.gradle; then
+#               echo "✅ Applying Firebase plugin in android/app/build.gradle..."
+#               sed -i '' '/apply plugin:.*flutter.*$/a\
+#                 apply plugin: "com.google.gms.google-services"
+#               ' android/app/build.gradle
+#               else
+#                 echo "✅ Firebase plugin already applied in android/app/build.gradle"
+#               fi
+#           else
+#           echo "🚫 Firebase config skipped (PUSH_NOTIFY is not true)"
+#           fi
+# #          if [ "$PUSH_NOTIFY" = "true" ]; then
+# #          echo "📦 Enabling Firebase integration..."
+# #
+# #          if ! grep -q "com.google.gms:google-services" android/build.gradle; then
+# #            echo "✅ Injecting Firebase classpath into android/build.gradle..."
+# #
+# #            if ! grep -q "buildscript {" android/build.gradle; then
+# #              sed -i '1s;^;buildscript {\n  repositories {\n    google()\n    mavenCentral()\n  }\n  dependencies {\n    classpath "com.google.gms:google-services:4.3.15"\n  }\n}\n\n;' android/build.gradle
+# #              echo "✅ Full buildscript block injected"
+# #            else
+# #              sed -i '/buildscript {/,/}/ s/dependencies {/dependencies {\n    classpath "com.google.gms:google-services:4.3.15"/' android/build.gradle
+# #              echo "✅ Firebase classpath inserted"
+# #            fi
+# #          fi
+# #          else
+# #          echo "🚫 Firebase config skipped (PUSH_NOTIFY is not true)"
+# #          fi
+
+#     - &patch_android_build_config
+#         name: Patch Android build config (NDK & desugaring)
+#         script: |
+#           echo "🔧 Patching android/app/build.gradle for NDK and desugaring support..."
+
+#           GRADLE_FILE="android/app/build.gradle"
+      
+#           # Ensure the file is writable
+#           chmod +w "$GRADLE_FILE"
+      
+#           # Inject ndkVersion if not present
+#           if grep -q "ndkVersion" "$GRADLE_FILE"; then
+#           echo "✅ NDK version already present"
+#           else
+#           echo "✅ Adding ndkVersion..."
+#           sed -i '' '/android {/a\
+#           \    ndkVersion "27.0.12077973"\
+#           ' "$GRADLE_FILE"
+#           fi
+      
+#           # Inject coreLibraryDesugaring dependency if not present
+#           if grep -q "coreLibraryDesugaring" "$GRADLE_FILE"; then
+#             echo "✅ coreLibraryDesugaring already present"
+#           else
+#             echo "✅ Adding coreLibraryDesugaring dependency..."
+#             sed -i '' '/dependencies {/a\
+#           \    coreLibraryDesugaring "com.android.tools:desugar_jdk_libs:2.1.4"\
+#           ' "$GRADLE_FILE"
+#           fi
+      
+#           # Inject compileOptions if not present
+#           if grep -q "compileOptions" "$GRADLE_FILE"; then
+#             echo "✅ compileOptions already exists"
+#           else
+#             echo "✅ Adding compileOptions with desugaring enabled..."
+#             sed -i '' '/android {/a\
+#           \    compileOptions {\n\
+#           \        sourceCompatibility JavaVersion.VERSION_11\n\
+#           \        targetCompatibility JavaVersion.VERSION_11\n\
+#           \        coreLibraryDesugaringEnabled true\n\
+#           \    }\
+#           ' "$GRADLE_FILE"
+#           fi
+
+# #          echo "🔧 Patching build.gradle for NDK and desugaring support..."
+# #
+# #          # Inject ndkVersion
+# #          if grep -q "ndkVersion" android/app/build.gradle; then
+# #            echo "✅ NDK version already specified"
+# #          else
+# #            sed -i '/android {/a \    ndkVersion "27.0.12077973"' android/app/build.gradle
+# #            echo "✅ Added ndkVersion"
+# #          fi
+# #
+# #          # Enable coreLibraryDesugaring
+# #          if grep -q "coreLibraryDesugaringEnabled true" android/app/build.gradle; then
+# #            echo "✅ Desugaring already enabled"
+# #          else
+# #            sed -i '/compileOptions {/a \        coreLibraryDesugaringEnabled true' android/app/build.gradle
+# #            echo "✅ Enabled desugaring"
+# #          fi
+# #
+# #          # Add desugaring dependency
+# #          if grep -q "desugar_jdk_libs" android/app/build.gradle; then
+# #            echo "✅ Desugar lib already in dependencies"
+# #          else
+# #            sed -i '/dependencies {/a \    coreLibraryDesugaring "com.android.tools:desugar_jdk_libs:2.0.4"' android/app/build.gradle
+# #            echo "✅ Added desugar_jdk_libs dependency"
+# #          fi
+
+#     - &get_json
+#         name: Get JSON file
+#         script: |
+#           if [ "$PUSH_NOTIFY" = "true" ]; then
+#             echo "📥 Downloading google-services.json..."
+#             wget -O android/app/google-services.json "$firebase_config_android"
+#             wget -O assets/google-services.json "$firebase_config_android"
+#           else
+#             echo "🚫 Firebase config skipped (PUSH_NOTIFY is not true)"
+#           fi
+
+#     - &update_sdkver
+#         name: Updating SDK version
+#         script: |
+#           if [ "$PUSH_NOTIFY" = "true" ]; then
+#             echo "🔧 Updating minSdkVersion and targetSdkVersion..."
+#             sed -i.bak 's/minSdk\s*=\s*.*$/minSdk 21/' android/app/build.gradle
+#             sed -i.bak 's/targetSdk\s*=\s*.*$/targetSdk 34/' android/app/build.gradle
+#             echo "✅ SDK versions updated"
+#           else
+#             echo "🚫 Firebase config skipped (PUSH_NOTIFY is not true)"
+#           fi
+
+#     - &build_app
+#         name: Building App with Feature Flags
+#         script: |
+#           echo "✅ Start Building APK..."
+
+#           flutter build apk --release \
+#           --dart-define=WEB_URL="$WEB_URL" \
+#           --dart-define=PUSH_NOTIFY="$PUSH_NOTIFY" \
+#           --dart-define=IS_CAMERA="$IS_CAMERA" \
+#           --dart-define=IS_LOCATION="$IS_LOCATION" \
+#           --dart-define=IS_MIC="$IS_MIC" \
+#           --dart-define=IS_NOTIFICATION="$IS_NOTIFICATION" \
+#           --dart-define=IS_CONTACT="$IS_CONTACT" \
+#           --dart-define=IS_SMS="$IS_SMS" \
+#           --dart-define=IS_PHONE="$IS_PHONE" \
+#           --dart-define=IS_BLUETOOTH="$IS_BLUETOOTH" \
+#           --verbose > flutter_build.log 2>&1
+      
+#           echo "✅ Flutter build command completed."
+      
+#           if [ ! -f build/app/outputs/flutter-apk/app-release.apk ]; then
+#           echo "❌ APK not found! Check flutter_build.log for errors."
+#           cat flutter_build.log | tail -n 100
+#           exit 1
+#           fi
+
+#           echo "✅ APK successfully built."
+
+#     - &get_logo
+#       name: Get logo image from logoUrl
+#       script: |
+#         mkdir -p assets/images/
+#         wget -O assets/images/logo.png $LOGO_URL
+#         flutter pub get
+
+#     - &get_splash
+#       name: Get splash screen image from splash image from Url
+#       script: |
+#         mkdir -p assets/images/
+#         wget -O assets/images/splash.png $SPLASH
+#         flutter pub get
+
+#     - &set_launcher_icons
+#       name: Generate Launcher Icons
+#       script: |
+#         flutter pub run flutter_launcher_icons:main
+#         flutter pub get
+#     - &set_splash_icons
+#       name: Add splash screen to build
+#       script: |
+#         flutter pub run flutter_native_splash:create
+#         flutter pub get
+
+
+#     - &change_app_name
+#       name: Change app name
+#       script: |
+#         flutter pub run rename setAppName --value "$APP_NAME"
+#         flutter pub get
+#     #
+#     #    - &build_abb
+#     #      name: Build ABB
+#     #      script: |
+#     #        flutter build appbundle --release --dart-define=WEB_URL=$WEB_URL
+
+    
+
+# #    - &build_debug_apk
+# #      name: Build APK
+# #      script: |
+# #        flutter clean
+# #        flutter pub get
+# #        flutter build apk --debug --dart-define=WEB_URL="$WEB_URL" --dart-define=PUSH_NOTIFY="$PUSH_NOTIFY"
+# #
+# #
+# #    - &build_release_apk
+# #      name: Build APK
+# #      script: |
+# #        flutter clean
+# #        flutter pub get
+# #        flutter build apk --release --dart-define=WEB_URL="$WEB_URL" --dart-define=PUSH_NOTIFY="$PUSH_NOTIFY"
+
+#     - &Debug_apk
+#       name: Debug APK Output
+#       script: |
+#         echo "🔍 Checking for generated APKs..."
+#         find build/ -name "*.apk"
+
+#     - &update_android_package
+#       name: Update Android Package Name
+#       script: |
+#         echo "Updating Android package name..."
+
+#         # Convert ORG_NAME and APP_NAME to lowercase and remove spaces/underscores
+#         CLEANED_ORG_NAME=$(echo "$ORG_NAME" | tr '[:upper:]' '[:lower:]' | tr -d ' _')
+#         CLEANED_APP_NAME=$(echo "$APP_NAME" | tr '[:upper:]' '[:lower:]' | tr -d ' _')
+
+#         # Construct valid package name
+#         # PACKAGE_NAME="com.${CLEANED_ORG_NAME}.${CLEANED_APP_NAME}"
+#         # Prefer PKG_NAME if available
+#         if [ -n "$PKG_NAME" ]; then
+#         PACKAGE_NAME="$PKG_NAME"
+#         else
+#           PACKAGE_NAME="${CLEANED_ORG_NAME}.${CLEANED_APP_NAME}"
+#         fi
+
+#         # Validate package name format
+#         if [[ ! "$PACKAGE_NAME" =~ ^[a-zA-Z_][a-zA-Z0-9]*(\.[a-zA-Z_][a-zA-Z0-9]*)+$ ]]; then
+#           echo "❌ ERROR: Invalid package name: $PACKAGE_NAME"
+#           exit 1
+#         fi
+
+#         echo "✔ Package name: $PACKAGE_NAME"
+
+#         flutter pub run rename setBundleId  --value "$PACKAGE_NAME"
+
+#         # Update AndroidManifest.xml
+#         sed -i '' "s/package=\"[^\"]*\"/package=\"$PACKAGE_NAME\"/g" android/app/src/main/AndroidManifest.xml
+
+#         # Update applicationId in build.gradle
+#         sed -i '' "s/applicationId \"[^\"]*\"/applicationId \"$PACKAGE_NAME\"/g" android/app/build.gradle
+
+#         echo "✔ Package name updated to: $PACKAGE_NAME"
+
+
+
+# workflows:
+#   android-workflow:
+#     name: Android Workflow
+#     max_build_duration: 65
+#     instance_type: mac_mini_m1
+#     environment:
+#       flutter: stable
+#     scripts:
+#       - *pub_get
+#       - *debug_env
+#       - *Confirm_gradle
+#       - *patch_android_build_config
+#       - *update_android_package
+#       - *Inject_Firebase
+#       - *get_json
+#       - *update_sdkver
+#       - *get_logo
+#       - *set_launcher_icons
+#       - *get_splash
+#       - *set_splash_icons
+#       - *change_app_name
+#       - *build_app
+#       - *Debug_apk
+#       # - *build_release_apk
+#       # - *build_abb
+#       # - *build_debug_apk
+#     artifacts:
+#       - *android_apk
+#       - *android_apk2
+#       - build/app/outputs/flutter-apk/app-release.apk
+#       - flutter_build.log
+#       - fcm_token.txt
+#     #        - *android_abb
+#     publishing: *email_release
+#   android-release-workflow:
+#     name: Android release Workflow
+#     max_build_duration: 65
+#     instance_type: mac_mini_m2
+#     environment:
+#       flutter: stable
+#     scripts:
+#       - *pub_get
+#       - *debug_env
+#       - *update_android_package  
+#       - *get_logo
+#       - *set_launcher_icons
+#       - *get_splash
+#       - *set_splash_icons
+#       - *change_app_name
+#       - *Inject_Firebase
+#       # - *build_release_apk
+#     # - *build_abb
+# #     - *build_debug_apk
+#     artifacts:
+#       - *android_apk
+#     #        - *android_abb
+#     publishing: *email_release
